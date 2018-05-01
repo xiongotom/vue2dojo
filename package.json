@@ -1,8 +1,11 @@
 {
   "name": "vue2dojo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "vue单文件组件转dojo风格（仅自己使用）",
   "main": "index.js",
+  "bin": {
+    "vue2dojo": "./bin/app"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

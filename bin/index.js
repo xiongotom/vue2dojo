@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const program = require('commander');
 const path = require('path');
-const ts = require('./transfer')
+const ts = require('./app/transfer')
 
 program
   .version('0.1.0')
