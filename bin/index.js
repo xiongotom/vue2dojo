@@ -20,20 +20,19 @@ program
   .parse(process.argv);
 
 // console.log(`file: ${program.file}, out is ${program.out}`);
-
-function exec() {
+const t = new ts();
+(function exec() {
   // 检查参数
   if (program.file == null) {
     console.log('未检测到输入的路径');
     return;
   }
   let inPath = path.resolve(program.file);
+  console.log(inPath);
   // 输出路径默认与输入路径相同
   let outPath = program.out ? path.resolve(program.out) : inPath.replace('.vue', '.js')
   console.log(outPath);
+  t.doTransfer(inPath, outPath);
+}).apply();
 
-  let t = new ts(inPath, outPath);
-  t.doTransfer();
-}
-
-module.exports = exec;
+// module.exports = exec;
