@@ -97,4 +97,43 @@ mo.prototype.doTransfer = function (inPath, outPath) {
   });
 }
 
+/**
+ * 执行入口
+ * @param {String} inPath 输入路径
+ * @param {String} outPath 输出路径
+ */
+mo.prototype.exec = function (inPath, outPath) {
+  let selfFun = arguments.callee;
+  let stat = fs.statSync(inPath)
+  if (stat.isDirectory()) {
+    // 文件夹
+    fs.readdir(inPath, (err, fAr) => {
+      fAr.forEach(fPath => {
+        fPath = path.join(inPath, fPath);
+        let fStat = fs.statSync(fPath);
+        if (fStat.isFile()) {
+          // 如果不是vue，返回
+          if (path.extname(fPath) !== '.vue') {
+            return;
+          }
+          let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
+          console.log(`${fPath} => ${out}`);
+          this.doTransfer(fPath, out);
+        } else if (fStat.isDirectory()) {
+          let out = path.join(outPath, path.relative(inPath, fPath));
+          // 递归
+          selfFun.call(this, fPath, out);
+        }
+      })
+    })
+  } else if (stat.isFile()) {
+    // 单个文件直接转换
+    if (fs.statSync(outPath).isDirectory()) {
+      // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
+      outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
+    }
+    this.doTransfer(inPath, outPath);
+  }
+}
+
 module.exports = mo;
