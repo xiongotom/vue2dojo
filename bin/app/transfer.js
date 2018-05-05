@@ -20,10 +20,12 @@ mo.prototype.doTransfer = function (inPath, outPath) {
   // 初始化参数
   let inTemplate = false;
   let inScript = false;
+  let inStyle = false;
   let templateBuffer = [];
   let scriptBuffer = [];
   let scriptInpAr = [];
   let scriptInpNameAr = [];
+  let styleBuffer = [];
 
   return new Promise((resolve, reject) => {
     let rl = readline.createInterface({
@@ -31,6 +33,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
     });
     // 逐行读取
     rl.on('line', (line) => {
+      //------------------------------template start---------------------------------//
       if (line === '<template>') {
         inTemplate = true;
         return;
@@ -42,6 +45,8 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       if (inTemplate === true) {
         templateBuffer.push(line);
       }
+      //------------------------------template over---------------------------------//
+      //------------------------------script start---------------------------------//
       if (line === '<script>') {
         inScript = true;
         return;
@@ -64,6 +69,22 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         }
         scriptBuffer.push('  '+line);
       }
+      //------------------------------script over---------------------------------//
+      //------------------------------css start---------------------------------//
+      if (line == '<style>') {
+        inStyle = true;
+        return;
+      }
+
+      if (line == '</style>') {
+        inStyle = false;
+        return;
+      }
+
+      if (inStyle) {
+        styleBuffer.push(line);
+      }
+      //------------------------------css over---------------------------------//
     });
 
     // 判断路径是否存在，
@@ -74,8 +95,8 @@ mo.prototype.doTransfer = function (inPath, outPath) {
     
     // 写入文件
     rl.on('close', () => {
-      if (scriptBuffer.length > 0) {
-        var sAr = [];
+      var sAr = [];
+      if (scriptBuffer.length > 0 && templateBuffer.length > 0) {
         sAr.push('define([');
         sAr.push(`  ${scriptInpAr.join(',\n  ')}`);
         sAr.push('], function (');
@@ -84,17 +105,37 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         sAr.push(`  var templateStr = \`${templateBuffer.join('\n')}\`;`);
         sAr.push(`  ${scriptBuffer.join('\n  ')}`);
         sAr.push('})')
-        fs.writeFile(outPath, sAr.join('\n'), (err) => {
-          if (err) {
-            console.error(`write script error: ${err}`);
-            reject(err);
-          } else {
-            resolve();
-          }
-        })
       }
+      if (styleBuffer.length > 0) {
+        sAr.push(this.buildStyleScript(styleBuffer, inPath));
+      }
+      fs.writeFile(outPath, sAr.join('\n'), (err) => {
+        if (err) {
+          console.error(`write script error: ${err}`);
+          reject(err);
+        } else {
+          resolve();
+        }
+      })
     });
   });
+}
+
+mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
+  let sAr = [];
+  // 随机id
+  let cssId = path.basename(inPath, '.vue') + '_' + Math.random().toString(32).substr(2);
+  sAr.push('(function() {');
+  sAr.push(`  if (!document.getElementById('${cssId}')) {`);
+  sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
+  sAr.push('    var styleNode = document.createElement(\'script\');');
+  sAr.push('    styleNode.type = \'text/javascript\';');
+  sAr.push(`    styleNode.id = '${cssId}';`);
+  sAr.push(`    styleNode.styleSheet.cssText = cssStr`);
+  sAr.push('    head.appendChild(styleNode);');
+  sAr.push('  }');
+  sAr.push('})();');
+  return sAr.join('\n');
 }
 
 /**
@@ -128,7 +169,7 @@ mo.prototype.exec = function (inPath, outPath) {
     })
   } else if (stat.isFile()) {
     // 单个文件直接转换
-    if (fs.statSync(outPath).isDirectory()) {
+    if (path.extname(outPath) == '') {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
       outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
     }
