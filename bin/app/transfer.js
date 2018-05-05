@@ -97,18 +97,20 @@ mo.prototype.doTransfer = function (inPath, outPath) {
     rl.on('close', () => {
       var sAr = [];
       if (scriptBuffer.length > 0 && templateBuffer.length > 0) {
-        sAr.push('define([');
-        sAr.push(`  ${scriptInpAr.join(',\n  ')}`);
-        sAr.push('], function (');
-        sAr.push(`  ${scriptInpNameAr.join(',\n  ')}`);
-        sAr.push(') {');
+        sAr.push(`define([${scriptInpAr.length>0 ? (`\n  ${scriptInpAr.join(',\n  ')}\n`) : ''}], function (${scriptInpNameAr.length>0 ? (`\n  ${scriptInpNameAr.join(',\n  ')}\n`) : ''}) {`);
+        // sAr.push(' function (');
+        // sAr.push(`  ${scriptInpNameAr.join(',\n  ')}`);
+        // sAr.push(') {');
         // template
+        sAr.push('  //----------------------------模板----------------------------//');
         sAr.push(`  var templateStr = \`${templateBuffer.join('\n')}\`;`);
         // 样式表
+        sAr.push('  //----------------------------样式----------------------------//');
         if (styleBuffer.length > 0) {
-          sAr.push(this.buildStyleScript(styleBuffer, inPath));
+          sAr.push('  '+this.buildStyleScript(styleBuffer, inPath));
         }
         // script
+        sAr.push('  //----------------------------代码主题----------------------------//');
         sAr.push(`  ${scriptBuffer.join('\n  ')}`);
         sAr.push('})')
       }
@@ -119,11 +121,19 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         } else {
           resolve();
         }
-      })
+      });
+      // if (styleBuffer.length > 0) {
+      //   let cssPath = path.join(outPath)
+      //   fs.writeFile()
+      // }
     });
   });
 }
-
+/**
+ * 生成加载样式文本的代码
+ * @param {Array} styleBuffer 
+ * @param {String} inPath 
+ */
 mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
   let sAr = [];
   // 随机id
@@ -131,14 +141,19 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
   sAr.push('(function() {');
   sAr.push(`  if (!document.getElementById('${cssId}')) {`);
   sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
-  sAr.push('    var styleNode = document.createElement(\'script\');');
-  sAr.push('    styleNode.type = \'text/javascript\';');
+  sAr.push('    var styleNode = document.createElement(\'style\');');
+  sAr.push(`    var rules = document.createTextNode(\'${styleBuffer.join(' ')}\');`)
+  sAr.push('    styleNode.type = \'text/css\';');
   sAr.push(`    styleNode.id = '${cssId}';`);
-  sAr.push(`    styleNode.styleSheet.cssText = \`${styleBuffer.join(' ')}\``);
+  sAr.push('    if (styleNode.styleSheet) {');
+  sAr.push(`      styleNode.styleSheet.cssText = rules.nodeValue;`);
+  sAr.push('    } else {');
+  sAr.push(`      styleNode.appendChild(rules);`);
+  sAr.push('    }');
   sAr.push('    head.appendChild(styleNode);');
   sAr.push('  }');
   sAr.push('})();');
-  return sAr.join('\n');
+  return sAr.join('\n  ');
 }
 
 /**
