@@ -131,7 +131,7 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
   sAr.push('    var styleNode = document.createElement(\'script\');');
   sAr.push('    styleNode.type = \'text/javascript\';');
   sAr.push(`    styleNode.id = '${cssId}';`);
-  sAr.push(`    styleNode.styleSheet.cssText = cssStr`);
+  sAr.push(`    styleNode.styleSheet.cssText = \`${styleBuffer.join(' ')}\``);
   sAr.push('    head.appendChild(styleNode);');
   sAr.push('  }');
   sAr.push('})();');
