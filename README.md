@@ -5,6 +5,8 @@
 vue2dojo -i 'input path' -o 'output path'
 ```
 
+> 暂时仅支持template、script、style标签。只是简单的风格转换，不涉及到任何编译
+
 vue文件：
 ```html
 <template>
