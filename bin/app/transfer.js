@@ -102,12 +102,15 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         sAr.push('], function (');
         sAr.push(`  ${scriptInpNameAr.join(',\n  ')}`);
         sAr.push(') {');
+        // template
         sAr.push(`  var templateStr = \`${templateBuffer.join('\n')}\`;`);
+        // 样式表
+        if (styleBuffer.length > 0) {
+          sAr.push(this.buildStyleScript(styleBuffer, inPath));
+        }
+        // script
         sAr.push(`  ${scriptBuffer.join('\n  ')}`);
         sAr.push('})')
-      }
-      if (styleBuffer.length > 0) {
-        sAr.push(this.buildStyleScript(styleBuffer, inPath));
       }
       fs.writeFile(outPath, sAr.join('\n'), (err) => {
         if (err) {
