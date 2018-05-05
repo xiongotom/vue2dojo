@@ -43,7 +43,9 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         return;
       }
       if (inTemplate === true) {
-        templateBuffer.push(line);
+        if (line.trim() != '') {
+          templateBuffer.push(line);
+        }
       }
       //------------------------------template over---------------------------------//
       //------------------------------script start---------------------------------//
@@ -82,7 +84,9 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       }
 
       if (inStyle) {
-        styleBuffer.push(line);
+        if (line.trim() != '') {
+          styleBuffer.push(line);
+        }
       }
       //------------------------------css over---------------------------------//
     });
@@ -103,10 +107,10 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         // sAr.push(') {');
         // template
         sAr.push('  //----------------------------模板----------------------------//');
-        sAr.push(`  var templateStr = \`${templateBuffer.join('\n')}\`;`);
+        sAr.push(`  var templateStr = \`\n${templateBuffer.join('\n')}\n  \`;`);
         // 样式表
-        sAr.push('  //----------------------------样式----------------------------//');
         if (styleBuffer.length > 0) {
+          sAr.push('  //----------------------------样式----------------------------//');
           sAr.push('  '+this.buildStyleScript(styleBuffer, inPath));
         }
         // script
@@ -142,7 +146,7 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
   sAr.push(`  if (!document.getElementById('${cssId}')) {`);
   sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
   sAr.push('    var styleNode = document.createElement(\'style\');');
-  sAr.push(`    var rules = document.createTextNode(\'${styleBuffer.join(' ')}\');`)
+  sAr.push(`    var rules = document.createTextNode(\`\n      ${styleBuffer.join('\n      ')}\n      \`);`)
   sAr.push('    styleNode.type = \'text/css\';');
   sAr.push(`    styleNode.id = '${cssId}';`);
   sAr.push('    if (styleNode.styleSheet) {');
