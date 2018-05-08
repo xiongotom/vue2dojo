@@ -21,6 +21,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
   let inTemplate = false;
   let inScript = false;
   let inStyle = false;
+  let isScopeStyle = false;
   let templateBuffer = [];
   let scriptBuffer = [];
   let scriptInpAr = [];
@@ -49,11 +50,11 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       }
       //------------------------------template over---------------------------------//
       //------------------------------script start---------------------------------//
-      if (line === '<script>') {
+      if (/\<script/.test(line)) {
         inScript = true;
         return;
       }
-      if (line == '</script>') {
+      if (/<\/script>/.test(line)) {
         inScript = false;
         return;
       }
@@ -73,12 +74,13 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       }
       //------------------------------script over---------------------------------//
       //------------------------------css start---------------------------------//
-      if (line == '<style>') {
+      if (/\<style/.test(line)) {
         inStyle = true;
+        isScopeStyle = /scoped/.test(line);
         return;
       }
 
-      if (line == '</style>') {
+      if (/<\/style>/.test(line)) {
         inStyle = false;
         return;
       }
@@ -91,7 +93,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       //------------------------------css over---------------------------------//
     });
 
-    // 判断路径是否存在，
+    // 判断路径是否存在，如果不存在，创建该路径（文件夹）
     let dirName = path.dirname(outPath);
     if (!fs.existsSync(dirName)) {
       fs.mkdirSync(dirName);
@@ -101,20 +103,47 @@ mo.prototype.doTransfer = function (inPath, outPath) {
     rl.on('close', () => {
       var sAr = [];
       if (scriptBuffer.length > 0 && templateBuffer.length > 0) {
+        // 找到模板根节点，赋值一个随机字符串的class，并找到已经赋值的class，用于后面样式的处理
+        let randomClass = (path.basename(inPath, '.vue') + '-' + Math.random().toString(32).substr(2)).toLowerCase();
+        // 寻找根节点（div），如果不是div，则不对根节点赋值随机class
+        let hasRootDiv = false;
+        let oldClass = '';
+        if (isScopeStyle) {
+          for(var i=0; i<templateBuffer.length; i++) {
+            let line = templateBuffer[i];
+            if (/\<div/.test(line)) {
+              // 寻找是否已存在class
+              let rootClassMatch = line.match(/[^:]class=\"(.*?)\"/);
+              if (rootClassMatch && rootClassMatch.length === 2) {
+                oldClass = rootClassMatch[1];
+                line = line.replace(`"${oldClass}"`, `class="${oldClass} ${randomClass}"`);
+              } else {
+                line = line.replace(/\<div/, `<div class="${randomClass}"`);
+              }
+              templateBuffer[i] = line;
+              hasRootDiv = true;
+              break;
+            } else if (line.trim() !== '') {
+              // 如果该行不是空，说明根节点不是div
+              break;
+            }
+          }
+        }
+        // 引用
         sAr.push(`define([${scriptInpAr.length>0 ? (`\n  ${scriptInpAr.join(',\n  ')}\n`) : ''}], function (${scriptInpNameAr.length>0 ? (`\n  ${scriptInpNameAr.join(',\n  ')}\n`) : ''}) {`);
-        // sAr.push(' function (');
-        // sAr.push(`  ${scriptInpNameAr.join(',\n  ')}`);
-        // sAr.push(') {');
-        // template
         sAr.push('  //----------------------------模板----------------------------//');
         sAr.push(`  var templateStr = \`\n${templateBuffer.join('\n')}\n  \`;`);
         // 样式表
         if (styleBuffer.length > 0) {
           sAr.push('  //----------------------------样式----------------------------//');
-          sAr.push('  '+this.buildStyleScript(styleBuffer, inPath));
+          if (isScopeStyle) {
+            sAr.push('  '+this.buildStyleScript(styleBuffer, inPath, randomClass, oldClass));
+          } else {
+            sAr.push('  '+this.buildStyleScript(styleBuffer, inPath));
+          }
         }
         // script
-        sAr.push('  //----------------------------代码主题----------------------------//');
+        sAr.push('  //----------------------------代码主体----------------------------//');
         sAr.push(`  ${scriptBuffer.join('\n  ')}`);
         sAr.push('})')
       }
@@ -137,9 +166,31 @@ mo.prototype.doTransfer = function (inPath, outPath) {
  * 生成加载样式文本的代码
  * @param {Array} styleBuffer 
  * @param {String} inPath 
+ * @param {String | null} 需要加到每个class名称上的前缀
+ * @param {String | null} 根节点的class
  */
-mo.prototype.buildStyleScript = function (styleBuffer, inPath) {
+mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldClass) {
   let sAr = [];
+  // 添加前缀
+  if (prefix) {
+    prefix = '.' + prefix;
+    let rules = require('css-rules')(styleBuffer.join(''));
+    rules.forEach(rule => {
+      let className = rule[0];
+      for(let i=0; i<styleBuffer.length; i++) {
+        let line = styleBuffer[i];
+        if (line.indexOf(className) !== -1) {
+          if (rootOldClass && rootOldClass.indexOf(className.replace('.', '')) !== -1) {
+            line = line.replace(className, `${className}${prefix}`);
+          } else {
+            line = line.replace(className, `${prefix} ${className}`);
+          }
+          styleBuffer[i] = line;
+        }
+      }
+    })
+  }
+  // console.log(rules);
   // 随机id
   let cssId = path.basename(inPath, '.vue') + '_' + Math.random().toString(32).substr(2);
   sAr.push('(function() {');

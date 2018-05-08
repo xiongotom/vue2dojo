@@ -25,6 +25,7 @@
   "homepage": "https://github.com/xiongotom/vue2dojo#readme",
   "dependencies": {
     "commander": "^2.15.1",
+    "css-rules": "^1.0.3",
     "moment": "^2.22.1"
   }
 }
