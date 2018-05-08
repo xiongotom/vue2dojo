@@ -27,6 +27,6 @@
     "commander": "^2.15.1",
     "css-rules": "^1.0.3",
     "fs-extra": "^6.0.0",
-    "moment": "^2.22.1"
+    "watch": "^1.0.2"
   }
 }

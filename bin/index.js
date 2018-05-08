@@ -2,6 +2,7 @@
 const program = require('commander');
 const path = require('path');
 const ts = require('./app/transfer');
+const watch = require('watch');
 
 program
   .version('0.1.0')
@@ -10,6 +11,7 @@ program
   .option('-i, --input <path>', '用于指定输入路径')
   .option('-o, --out <path>', '用于指定输出路径，如果使用-f参数，该路径指定到文件，如果使用-r参数，该路径指定到文件夹')
   .option('-p, --publish', '是否需要将非vue的文件也输出到目标路径')
+  .option('-w, --watch', '是否持续监控目标文件的改变')
   // .action((cmd, options) => {
   //   // let inputPath = options.file || '';
   //   // if (inputPath == '') {
@@ -23,6 +25,7 @@ program
 // console.log(`file: ${program.file}, out is ${program.out}`);
 const t = new ts();
 (function exec() {
+  console.time('vue2dojo')
   var fPath = program.input;
   // 检查参数
   if (!fPath) {
@@ -36,8 +39,29 @@ const t = new ts();
     let isPublish = program.out != null && program.publish != null;
     console.log(`输出路径：${outPath}`);
     t.exec(inPath, outPath, isPublish).then(() => {
-      console.log('finished!!!')
-    })
+      console.timeEnd('vue2dojo')
+    });
+    if (program.watch) {
+      watch.createMonitor(inPath, {
+        // filter: function (f) {
+        //   if (path.extname(f) === '.vue') {
+        //     console.log(f);
+        //     return true;
+        //   }
+        //   // return false;
+        //   return true;
+        // }
+      }, (monitor) => {
+        monitor.on('changed', (f, curr, prev) => {
+          if (path.extname(f) === '.vue') {
+            let i = path.relative(inPath, f);
+            let o = path.join(outPath, i).replace('.vue', '.js');
+            console.log(`[UPDATE]: ${f} => ${o}`)
+            t.exec(f, o);
+          }
+        })
+      })
+    }
   }
 }).apply();
 

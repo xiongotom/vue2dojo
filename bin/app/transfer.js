@@ -243,36 +243,39 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
   let stat = await fs.stat(inPath)
   if (stat.isDirectory()) {
     // 文件夹
-    fs.readdir(inPath, async (err, fAr) => {
-      fAr.forEach( async (fPath) => {
-        fPath = path.join(inPath, fPath);
-        let fStat = fs.statSync(fPath);
-        if (fStat.isFile()) {
-          // 如果不是vue，返回
-          if (path.extname(fPath) !== '.vue') {
-            if (isPublish) {
-              let oPath = path.join(outPath, path.basename(fPath));
-              await this.copyFile(fPath, oPath);
-            }
-            return;
+    let fAr = await fs.readdir(inPath);
+    const pAr = fAr.map( fPath => {
+      fPath = path.join(inPath, fPath);
+      let fStat = fs.statSync(fPath);
+      if (fStat.isFile()) {
+        // 如果不是vue，返回
+        if (path.extname(fPath) !== '.vue') {
+          if (isPublish) {
+            let oPath = path.join(outPath, path.basename(fPath));
+            return this.copyFile(fPath, oPath);
           }
+        } else {
           let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
           console.log(`${fPath} => ${out}`);
-          await this.doTransfer(fPath, out);
-        } else if (fStat.isDirectory()) {
-          let out = path.join(outPath, path.relative(inPath, fPath));
-          // 递归
-          selfFun.call(this, fPath, out, isPublish);
+          return this.doTransfer(fPath, out);
         }
-      })
-    })
+      } else if (fStat.isDirectory()) {
+        let out = path.join(outPath, path.relative(inPath, fPath));
+        // 递归
+        return selfFun.call(this, fPath, out, isPublish);
+      }
+    });
+    for (const p of pAr) {
+      await p;
+    }
+    return;
   } else if (stat.isFile()) {
     // 单个文件直接转换
     if (path.extname(outPath) == '') {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
       outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
     }
-    await this.doTransfer(inPath, outPath);
+    return this.doTransfer(inPath, outPath);
   }
 }
 
