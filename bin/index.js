@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const program = require('commander');
 const path = require('path');
-const ts = require('./app/transfer')
+const ts = require('./app/transfer');
 
 program
   .version('0.1.0')
@@ -9,6 +9,7 @@ program
   // .command('*')
   .option('-i, --input <path>', '用于指定输入路径')
   .option('-o, --out <path>', '用于指定输出路径，如果使用-f参数，该路径指定到文件，如果使用-r参数，该路径指定到文件夹')
+  .option('-p, --publish', '是否需要将非vue的文件也输出到目标路径')
   // .action((cmd, options) => {
   //   // let inputPath = options.file || '';
   //   // if (inputPath == '') {
@@ -32,8 +33,11 @@ const t = new ts();
     console.log(`输入路径：${inPath}`);
     // 输出路径默认与输入路径相同
     let outPath = program.out ? path.resolve(program.out) : inPath.replace('.vue', '.js')
+    let isPublish = program.out != null && program.publish != null;
     console.log(`输出路径：${outPath}`);
-    t.exec(inPath, outPath);
+    t.exec(inPath, outPath, isPublish).then(() => {
+      console.log('finished!!!')
+    })
   }
 }).apply();
 

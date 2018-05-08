@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
+const fs = require('fs-extra');
 const readline = require('readline');
 const path = require('path');
 // 正则表达式
@@ -70,7 +70,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
           scriptBuffer.push('  template: templateStr,');
           return;
         }
-        scriptBuffer.push('  '+line);
+        scriptBuffer.push(line);
       }
       //------------------------------script over---------------------------------//
       //------------------------------css start---------------------------------//
@@ -96,7 +96,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
     // 判断路径是否存在，如果不存在，创建该路径（文件夹）
     let dirName = path.dirname(outPath);
     if (!fs.existsSync(dirName)) {
-      fs.mkdirSync(dirName);
+      fs.mkdirsSync(dirName);
     }
     
     // 写入文件
@@ -116,7 +116,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
               let rootClassMatch = line.match(/[^:]class=\"(.*?)\"/);
               if (rootClassMatch && rootClassMatch.length === 2) {
                 oldClass = rootClassMatch[1];
-                line = line.replace(`"${oldClass}"`, `class="${oldClass} ${randomClass}"`);
+                line = line.replace(`class="${oldClass}"`, `class="${oldClass} ${randomClass}"`);
               } else {
                 line = line.replace(/\<div/, `<div class="${randomClass}"`);
               }
@@ -145,7 +145,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         // script
         sAr.push('  //----------------------------代码主体----------------------------//');
         sAr.push(`  ${scriptBuffer.join('\n  ')}`);
-        sAr.push('})')
+        sAr.push('});')
       }
       fs.writeFile(outPath, sAr.join('\n'), (err) => {
         if (err) {
@@ -211,32 +211,58 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
   return sAr.join('\n  ');
 }
 
+mo.prototype.copyFile = function (inPath, outPath) {
+  let outFolder = path.dirname(outPath);
+  return new Promise((resolve, reject) => {
+    fs.ensureDir(outFolder, err => {
+      if (!err) {
+        fs.copy(inPath, outPath, err => {
+          if (err) {
+            console.error(`copy file error: ${err}`);
+            reject(err);
+          } else {
+            resolve();
+          }
+        })
+      } else {
+        console.error(`create folder error: ${err}`)
+        reject(err);
+      }
+    })
+  })
+}
+
 /**
  * 执行入口
  * @param {String} inPath 输入路径
  * @param {String} outPath 输出路径
+ * @param {Boolean} isPublish 是否是发布状态，如果是，将输出其他文件（不是vue文件）到outPath
  */
-mo.prototype.exec = function (inPath, outPath) {
+mo.prototype.exec = async function (inPath, outPath, isPublish) {
   let selfFun = arguments.callee;
-  let stat = fs.statSync(inPath)
+  let stat = await fs.stat(inPath)
   if (stat.isDirectory()) {
     // 文件夹
-    fs.readdir(inPath, (err, fAr) => {
-      fAr.forEach(fPath => {
+    fs.readdir(inPath, async (err, fAr) => {
+      fAr.forEach( async (fPath) => {
         fPath = path.join(inPath, fPath);
         let fStat = fs.statSync(fPath);
         if (fStat.isFile()) {
           // 如果不是vue，返回
           if (path.extname(fPath) !== '.vue') {
+            if (isPublish) {
+              let oPath = path.join(outPath, path.basename(fPath));
+              await this.copyFile(fPath, oPath);
+            }
             return;
           }
           let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
           console.log(`${fPath} => ${out}`);
-          this.doTransfer(fPath, out);
+          await this.doTransfer(fPath, out);
         } else if (fStat.isDirectory()) {
           let out = path.join(outPath, path.relative(inPath, fPath));
           // 递归
-          selfFun.call(this, fPath, out);
+          selfFun.call(this, fPath, out, isPublish);
         }
       })
     })
@@ -246,7 +272,7 @@ mo.prototype.exec = function (inPath, outPath) {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
       outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
     }
-    this.doTransfer(inPath, outPath);
+    await this.doTransfer(inPath, outPath);
   }
 }
 
