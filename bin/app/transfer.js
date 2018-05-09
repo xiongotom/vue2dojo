@@ -211,6 +211,11 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
   return sAr.join('\n  ');
 }
 
+/**
+ * 复制文件
+ * @param {String} inPath 输入路径
+ * @param {String} outPath 输出路径
+ */
 mo.prototype.copyFile = function (inPath, outPath) {
   let outFolder = path.dirname(outPath);
   return new Promise((resolve, reject) => {
@@ -239,6 +244,10 @@ mo.prototype.copyFile = function (inPath, outPath) {
  * @param {Boolean} isPublish 是否是发布状态，如果是，将输出其他文件（不是vue文件）到outPath
  */
 mo.prototype.exec = async function (inPath, outPath, isPublish) {
+  // 如果是发布模式，则需要避免输入和输出路径相同的情况
+  if (inPath == outPath && isPublish) {
+    return;
+  }
   let selfFun = arguments.callee;
   let stat = await fs.stat(inPath)
   if (stat.isDirectory()) {
@@ -269,7 +278,7 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
       await p;
     }
     return;
-  } else if (stat.isFile()) {
+  } else if (stat.isFile() && path.extname(inPath) === '.vue') {
     // 单个文件直接转换
     if (path.extname(outPath) == '') {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径

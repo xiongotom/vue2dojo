@@ -22,6 +22,27 @@ program
   // })
   .parse(process.argv);
 
+  /**
+   * 
+   * @param {String} f 目标文件路径
+   * @param {String} inPath 输入基础路径
+   * @param {String} outPath 输出基础路径
+   */
+const deal = function (f, inPath, outPath) {
+  if (path.extname(f) === '.vue') {
+    // 如果是VUE文件，则转换之
+    let i = path.relative(inPath, f);
+    let o = path.join(outPath, i).replace('.vue', '.js');
+    console.log(`[UPDATE]: ${f} => ${o}`)
+    t.exec(f, o);
+  } else if (program.publish) {
+    // 如果是发布模式，则其他后缀的文件修改后也许复制
+    let i = path.relative(inPath, f);
+    let o = path.join(outPath, i);
+    t.copyFile(f, o);
+  }
+}
+
 // console.log(`file: ${program.file}, out is ${program.out}`);
 const t = new ts();
 (function exec() {
@@ -53,13 +74,11 @@ const t = new ts();
         // }
       }, (monitor) => {
         monitor.on('changed', (f, curr, prev) => {
-          if (path.extname(f) === '.vue') {
-            let i = path.relative(inPath, f);
-            let o = path.join(outPath, i).replace('.vue', '.js');
-            console.log(`[UPDATE]: ${f} => ${o}`)
-            t.exec(f, o);
-          }
-        })
+          deal(f, inPath, outPath);
+        });
+        monitor.on('created', (f, stat) => {
+          deal(f, inPath, outPath);
+        });
       })
     }
   }
