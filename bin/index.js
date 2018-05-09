@@ -3,6 +3,10 @@ const program = require('commander');
 const path = require('path');
 const ts = require('./app/transfer');
 const watch = require('watch');
+const fs = require('fs-extra');
+
+// 需要忽略的文件夹
+const ignoreFolder = ['.svn', '.vscode', 'node_modules'];
 
 program
   .version('0.1.0')
@@ -64,14 +68,19 @@ const t = new ts();
     });
     if (program.watch) {
       watch.createMonitor(inPath, {
-        // filter: function (f) {
-        //   if (path.extname(f) === '.vue') {
-        //     console.log(f);
-        //     return true;
-        //   }
-        //   // return false;
-        //   return true;
-        // }
+        filter: function (f) {
+          let s = fs.statSync(f);
+          if (s.isDirectory() && ignoreFolder.indexOf(path.basename(f)) !== -1) {
+            return false;
+          }
+          // 如果是发布模式，则需要监视非vue文件的改变
+          if (!program.publish) {
+            if (s.isFile()) {
+              return path.extname(f) === '.vue';
+            }
+          }
+          return true;
+        }
       }, (monitor) => {
         monitor.on('changed', (f, curr, prev) => {
           deal(f, inPath, outPath);

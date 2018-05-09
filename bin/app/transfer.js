@@ -180,8 +180,13 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
       for(let i=0; i<styleBuffer.length; i++) {
         let line = styleBuffer[i];
         if (line.indexOf(className) !== -1) {
-          if (rootOldClass && rootOldClass.indexOf(className.replace('.', '')) !== -1) {
-            line = line.replace(className, `${className}${prefix}`);
+          let oldAr = rootOldClass.split(' ');
+          let clsAr = className.split(' ');
+          let rootClass = clsAr.find( item => {
+            return oldAr.indexOf(item.replace(/\./, '')) !== -1;
+          })
+          if (rootClass) {
+            line = line.replace(rootClass, `${rootClass}${prefix}`);
           } else {
             line = line.replace(className, `${prefix} ${className}`);
           }
