@@ -179,7 +179,7 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
       let className = rule[0];
       for(let i=0; i<styleBuffer.length; i++) {
         let line = styleBuffer[i];
-        if (line.indexOf(className) !== -1) {
+        if (line.indexOf(className) !== -1 && (line.indexOf('{') !== -1 || line.indexOf(',') !== -1)) {
           let oldAr = rootOldClass.split(' ');
           let clsAr = className.split(' ');
           let rootClass = clsAr.find( item => {
