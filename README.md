@@ -24,7 +24,8 @@ export default {
   }
 };
 </script>
-<style>
+<!-- 支持scoped -->
+<style scoped>
 .vue-demo-button {
   width: 50px;
   height: 50px;
