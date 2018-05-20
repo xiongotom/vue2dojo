@@ -17,7 +17,7 @@ var mo = function () {};
  * @param {String} inPath 输入路径
  * @param {String} outPath 输出路径
  */
-mo.prototype.doTransfer = function (inPath, outPath) {
+mo.prototype.doTransfer = function (inPath, outPath, fileId) {
   // 初始化参数
   let inTemplate = false;
   let inScript = false;
@@ -105,7 +105,8 @@ mo.prototype.doTransfer = function (inPath, outPath) {
       var sAr = [];
       if (scriptBuffer.length > 0 && templateBuffer.length > 0) {
         // 找到模板根节点，赋值一个随机字符串的class，并找到已经赋值的class，用于后面样式的处理
-        let randomClass = (path.basename(inPath, '.vue') + '-' + Math.random().toString(32).substr(2)).toLowerCase();
+        // let randomClass = (path.basename(inPath, '.vue') + '-' + Math.random().toString(32).substr(2)).toLowerCase();
+        let randomClass = (path.basename(inPath, '.vue') + '-' + fileId);
         // 寻找根节点（div），如果不是div，则不对根节点赋值随机class
         let hasRootDiv = false;
         let oldClass = '';
@@ -138,9 +139,9 @@ mo.prototype.doTransfer = function (inPath, outPath) {
         if (styleBuffer.length > 0) {
           sAr.push('  //----------------------------样式----------------------------//');
           if (isScopeStyle) {
-            sAr.push('  '+this.buildStyleScript(styleBuffer, inPath, randomClass, oldClass));
+            sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath, randomClass, oldClass));
           } else {
-            sAr.push('  '+this.buildStyleScript(styleBuffer, inPath));
+            sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath));
           }
         }
         // script
@@ -166,7 +167,7 @@ mo.prototype.doTransfer = function (inPath, outPath) {
  * @param {String | null} 需要加到每个class名称上的前缀
  * @param {String | null} 根节点的class
  */
-mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldClass) {
+mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, rootOldClass) {
   let sAr = [],
       cssAr = [];
   // 添加前缀
@@ -196,7 +197,8 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
   }
   // console.log(rules);
   // 随机id
-  let cssId = path.basename(inPath, '.vue') + '_' + Math.random().toString(32).substr(2);
+  // let cssId = path.basename(inPath, '.vue') + '_' + Math.random().toString(32).substr(2);
+  cssId = path.basename(inPath, '.vue') + '_' + fileId;
   sAr.push('(function() {');
   sAr.push(`  if (!document.getElementById('${cssId}')) {`);
   sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
@@ -270,7 +272,7 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
         } else {
           let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
           console.log(`${fPath} => ${out}`);
-          return this.doTransfer(fPath, out);
+          return this.doTransfer(fPath, out, fStat.mtimeMs.toString(36).replace('.',''));
         }
       } else if (fStat.isDirectory()) {
         let out = path.join(outPath, path.relative(inPath, fPath));
@@ -288,7 +290,7 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
       outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
     }
-    return this.doTransfer(inPath, outPath);
+    return this.doTransfer(inPath, outPath, stat.mtimeMs.toString(36).replace('.',''));
   }
 }
 
