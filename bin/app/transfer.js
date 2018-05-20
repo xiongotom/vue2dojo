@@ -3,8 +3,9 @@
 const fs = require('fs-extra');
 const readline = require('readline');
 const path = require('path');
+const cssRules = require('css-rules');
 // 正则表达式
-const inpReg = /from \'(.*?)\'/g
+const inpReg = /from ['"](.*?)['"]/g
 const inpReplaceReg = /(\w*)from/g;
 const inpNameReg = /import(.*?)from/g;
 const inpNameReplaceReg = /(\w*)import(.*)from/g
@@ -155,10 +156,6 @@ mo.prototype.doTransfer = function (inPath, outPath) {
           resolve();
         }
       });
-      // if (styleBuffer.length > 0) {
-      //   let cssPath = path.join(outPath)
-      //   fs.writeFile()
-      // }
     });
   });
 }
@@ -170,31 +167,32 @@ mo.prototype.doTransfer = function (inPath, outPath) {
  * @param {String | null} 根节点的class
  */
 mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldClass) {
-  let sAr = [];
+  let sAr = [],
+      cssAr = [];
   // 添加前缀
   if (prefix) {
     prefix = '.' + prefix;
-    let rules = require('css-rules')(styleBuffer.join(''));
+    let oldAr = rootOldClass.split(' ').map(item => item.trim() !== '' ? '.'+item : '');
+    let rules = cssRules(styleBuffer.join(''));
     rules.forEach(rule => {
-      let className = rule[0];
-      for(let i=0; i<styleBuffer.length; i++) {
-        let line = styleBuffer[i];
-        // if (line.indexOf(className) !== -1 && (line.indexOf('{') !== -1 || line.indexOf(',') !== -1)) {
-        if (line.replace(className, '').replace(/[ {,}]/g, '').trim() === '') {
-          let oldAr = rootOldClass.split(' ');
-          let clsAr = className.split(' ');
-          let rootClass = clsAr.find( item => {
-            return oldAr.indexOf(item.replace(/\./, '')) !== -1;
-          })
-          if (rootClass) {
-            line = line.replace(rootClass, `${rootClass}${prefix}`);
-          } else {
-            line = line.replace(className, `${prefix} ${className}`);
-          }
-          styleBuffer[i] = line;
-        }
+      let cssName = rule[0];
+      let cssText = rule[1].cssText;
+      // 寻找根节点的class
+      let clsAr = cssName.split(' ');
+      let rootClass = clsAr.find(item => oldAr.indexOf(item) !== -1);
+      if (rootClass) {
+        cssAr.push(cssName.replace(rootClass, `${rootClass}${prefix}`) + ' {');
+      } else {
+        cssAr.push(`${prefix} ${cssName}` + ' {');
       }
+      // css 内容
+      let cssTextAr = cssText.split(';').map(item => '  ' + item.trim());
+      cssAr = cssAr.concat(cssTextAr);
+      cssAr.push('}');
     })
+    cssAr = cssAr.filter(item => item.trim() !== '')
+  } else {
+    cssAr = styleBuffer;
   }
   // console.log(rules);
   // 随机id
@@ -203,7 +201,7 @@ mo.prototype.buildStyleScript = function (styleBuffer, inPath, prefix, rootOldCl
   sAr.push(`  if (!document.getElementById('${cssId}')) {`);
   sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
   sAr.push('    var styleNode = document.createElement(\'style\');');
-  sAr.push(`    var rules = document.createTextNode(\`\n      ${styleBuffer.join('\n      ')}\n      \`);`)
+  sAr.push(`    var rules = document.createTextNode(\`\n      ${cssAr.join('\n      ')}\n      \`);`)
   sAr.push('    styleNode.type = \'text/css\';');
   sAr.push(`    styleNode.id = '${cssId}';`);
   sAr.push('    if (styleNode.styleSheet) {');
