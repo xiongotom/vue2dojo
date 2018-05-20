@@ -106,7 +106,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
       if (scriptBuffer.length > 0 && templateBuffer.length > 0) {
         // 找到模板根节点，赋值一个随机字符串的class，并找到已经赋值的class，用于后面样式的处理
         // let randomClass = (path.basename(inPath, '.vue') + '-' + Math.random().toString(32).substr(2)).toLowerCase();
-        let randomClass = (path.basename(inPath, '.vue') + '-' + fileId);
+        let randomClass = (path.basename(inPath, '.vue').toLowerCase() + '-' + fileId);
         // 寻找根节点（div），如果不是div，则不对根节点赋值随机class
         let hasRootDiv = false;
         let oldClass = '';
@@ -198,7 +198,7 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
   // console.log(rules);
   // 随机id
   // let cssId = path.basename(inPath, '.vue') + '_' + Math.random().toString(32).substr(2);
-  cssId = path.basename(inPath, '.vue') + '_' + fileId;
+  cssId = path.basename(inPath, '.vue').toLowerCase() + '_' + fileId;
   sAr.push('(function() {');
   sAr.push(`  if (!document.getElementById('${cssId}')) {`);
   sAr.push('    var head = document.getElementsByTagName(\'head\').item(0);');
