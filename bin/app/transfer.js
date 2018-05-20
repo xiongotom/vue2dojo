@@ -187,7 +187,7 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
         cssAr.push(`${prefix} ${cssName}` + ' {');
       }
       // css 内容
-      let cssTextAr = cssText.split(';').map(item => '  ' + item.trim());
+      let cssTextAr = cssText.split(';').map(item => item.trim() !== '' ? ('  ' + item.trim()+ ';') : '');
       cssAr = cssAr.concat(cssTextAr);
       cssAr.push('}');
     })
