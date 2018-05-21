@@ -272,7 +272,7 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
         } else {
           let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
           console.log(`${fPath} => ${out}`);
-          return this.doTransfer(fPath, out, fStat.mtimeMs.toString(36).replace('.',''));
+          return this.doTransfer(fPath, out, fStat.birthtimeMs.toString(36).replace('.',''));
         }
       } else if (fStat.isDirectory()) {
         let out = path.join(outPath, path.relative(inPath, fPath));
@@ -290,7 +290,7 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
       // 如果输入路径是文件夹，需要将输出路径转换为到文件的路径
       outPath = path.join(outPath, (path.basename(inPath, '.vue') + '.js'))
     }
-    return this.doTransfer(inPath, outPath, stat.mtimeMs.toString(36).replace('.',''));
+    return this.doTransfer(inPath, outPath, stat.birthtimeMs.toString(36).replace('.',''));
   }
 }
 
