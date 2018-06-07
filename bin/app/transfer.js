@@ -267,15 +267,36 @@ mo.prototype.exec = async function (inPath, outPath, isPublish) {
         if (path.extname(fPath) !== '.vue') {
           if (isPublish) {
             let oPath = path.join(outPath, path.basename(fPath));
-            return this.copyFile(fPath, oPath);
+            // 如果输出文件已存在，并且修改时间晚于输入文件的修改时间，则认定无需转换
+            if (fs.existsSync(oPath)) {
+              fs.stat(oPath, (err, oStat) => {
+                if (!err && oStat.mtime >= fStat.mtime) {
+                  return new Promise(resolve => resolve());
+                } else {
+                  return this.copyFile(fPath, oPath);
+                }
+              })
+            } else {
+              return this.copyFile(fPath, oPath);
+            }
           }
         } else {
           let out = path.join(outPath, (path.basename(fPath, '.vue') + '.js'));
-          console.log(`${fPath} => ${out}`);
-          // let p = path.relative(path.resolve('./'), path.dirname(inPath));
-          // p = p.replace(/[\/\\]/g, '-').toLowerCase();
           let p = fStat.size.toString(36);
-          return this.doTransfer(fPath, out, p);
+          // 如果输出文件已存在，并且修改时间晚于输入文件的修改时间，则认定无需转换
+          if (fs.existsSync(out)) {
+            fs.stat(out, (err, oStat) => {
+              if (!err && oStat.mtime >= fStat.mtime) {
+                return new Promise(resolve => resolve());
+              } else {
+                console.log(`${fPath} => ${out}`);
+                return this.doTransfer(fPath, out, p);
+              }
+            })
+          } else {
+            console.log(`${fPath} => ${out}`);
+            return this.doTransfer(fPath, out, p);
+          }
         }
       } else if (fStat.isDirectory()) {
         let out = path.join(outPath, path.relative(inPath, fPath));
