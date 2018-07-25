@@ -109,6 +109,8 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
         let randomClass = (path.basename(inPath, '.vue').toLowerCase() + '-' + fileId);
         // 寻找根节点（div），如果不是div，则不对根节点赋值随机class
         let hasRootDiv = false;
+        let rootTransition = false;
+        let transitionClass = '';
         let oldClass = '';
         if (isScopeStyle) {
           for(var i=0; i<templateBuffer.length; i++) {
@@ -130,6 +132,10 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
               // 如果第一行是transition，繼續尋找
               break;
             }
+            if (/<transition/.test(line)) {
+              rootTransition = true;
+              transitionClass = line.match(/name=\"(.*?)\"/)[1] || '';
+            }
           }
         }
         // 引用
@@ -140,7 +146,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
         if (styleBuffer.length > 0) {
           sAr.push('  //----------------------------样式----------------------------//');
           if (isScopeStyle) {
-            sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath, randomClass, oldClass));
+            sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath, randomClass, oldClass, transitionClass));
           } else {
             sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath));
           }
@@ -168,7 +174,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
  * @param {String | null} 需要加到每个class名称上的前缀
  * @param {String | null} 根节点的class
  */
-mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, rootOldClass) {
+mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, rootOldClass, transitionClass) {
   let sAr = [],
       cssAr = [];
   // 添加前缀
@@ -184,9 +190,13 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
       let rootClass = clsAr.find(item => oldAr.indexOf(item) !== -1);
       if (rootClass) {
         cssAr.push(cssName.replace(rootClass, `${rootClass}${prefix}`) + ' {');
+      } else if (new RegExp(transitionClass + '-').test(cssName)) {
+        // transition class
+        cssAr.push(`${prefix}${cssName} {`);
       } else {
         cssAr.push(`${prefix} ${cssName}` + ' {');
       }
+      
       // css 内容
       let cssTextAr = cssText.split(';').map(item => item.trim() !== '' ? ('  ' + item.trim()+ ';') : '');
       cssAr = cssAr.concat(cssTextAr);
