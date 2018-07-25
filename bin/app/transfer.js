@@ -125,8 +125,9 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
               templateBuffer[i] = line;
               hasRootDiv = true;
               break;
-            } else if (line.trim() !== '') {
+            } else if (line.trim() !== '' && !/<transition/.test(line)) {
               // 如果该行不是空，说明根节点不是div
+              // 如果第一行是transition，繼續尋找
               break;
             }
           }
