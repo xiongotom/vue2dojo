@@ -190,7 +190,7 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
       let rootClass = clsAr.find(item => oldAr.indexOf(item) !== -1);
       if (rootClass) {
         cssAr.push(cssName.replace(rootClass, `${rootClass}${prefix}`) + ' {');
-      } else if (new RegExp(transitionClass + '-').test(cssName)) {
+      } else if (transitionClass && new RegExp(transitionClass + '-').test(cssName)) {
         // transition class
         cssAr.push(`${prefix}${cssName} {`);
       } else {
