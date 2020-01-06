@@ -216,7 +216,7 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
           r.map(_i => deal(_i.name, _i.text));
           break;
         case 'media':
-          cssAr.push(`${rule.media} {`);
+          cssAr.push(`@media ${rule.media} {`);
           for(let _r of rule.rules) {
             r = this._strRule(_r)
             r.map(_i => deal(_i.name, _i.text));
