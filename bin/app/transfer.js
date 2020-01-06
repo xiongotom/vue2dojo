@@ -3,7 +3,8 @@
 const fs = require('fs-extra');
 const readline = require('readline');
 const path = require('path');
-const cssRules = require('css-rules');
+// const cssRules = require('css-rules');
+const css = require('css')
 // 正则表达式
 const inpReg = /from ['"](.*?)['"]/g
 const inpReplaceReg = /(\w*)from/g;
@@ -181,26 +182,47 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
   if (prefix) {
     prefix = '.' + prefix;
     let oldAr = rootOldClass.split(' ').map(item => item.trim() !== '' ? '.'+item : '');
-    let rules = cssRules(styleBuffer.join(''));
+    // let rules = cssRules(styleBuffer.join(''));
+    let rules = css.parse(styleBuffer.join(''))
+    if(rules && rules.stylesheet) {
+      rules = rules.stylesheet.rules
+
+    }
     rules.forEach(rule => {
-      let cssName = rule[0];
-      let cssText = rule[1].cssText;
-      // 寻找根节点的class
-      let clsAr = cssName.split(' ');
-      let rootClass = clsAr.find(item => oldAr.indexOf(item) !== -1);
-      if (rootClass) {
-        cssAr.push(cssName.replace(rootClass, `${rootClass}${prefix}`) + ' {');
-      } else if (transitionClass && new RegExp(transitionClass + '-').test(cssName)) {
-        // transition class
-        cssAr.push(`${prefix}${cssName} {`);
-      } else {
-        cssAr.push(`${prefix} ${cssName}` + ' {');
+      // let cssName = rule[0];
+      // let cssText = rule[1].cssText;
+      const deal = (cssName, cssText) => {
+        // 寻找根节点的class
+        let clsAr = cssName.split(' ');
+        let rootClass = clsAr.find(item => oldAr.indexOf(item) !== -1);
+        if (rootClass) {
+          cssAr.push(cssName.replace(rootClass, `${rootClass}${prefix}`) + ' {');
+        } else if (transitionClass && new RegExp(transitionClass + '-').test(cssName)) {
+          // transition class
+          cssAr.push(`${prefix}${cssName} {`);
+        } else {
+          cssAr.push(`${prefix} ${cssName}` + ' {');
+        }
+        
+        // css 内容
+        let cssTextAr = cssText.split(';').map(item => item.trim() !== '' ? ('  ' + item.trim()+ ';') : '');
+        cssAr = cssAr.concat(cssTextAr);
+        cssAr.push('}');
       }
-      
-      // css 内容
-      let cssTextAr = cssText.split(';').map(item => item.trim() !== '' ? ('  ' + item.trim()+ ';') : '');
-      cssAr = cssAr.concat(cssTextAr);
-      cssAr.push('}');
+      let r
+      switch(rule.type) {
+        case 'rule':
+          r = this._strRule(rule);
+          r.map(_i => deal(_i.name, _i.text));
+          break;
+        case 'media':
+          cssAr.push(`${rule.media} {`);
+          for(let _r of rule.rules) {
+            r = this._strRule(_r)
+            r.map(_i => deal(_i.name, _i.text));
+          }
+          cssAr.push('}');
+      }
     })
     cssAr = cssAr.filter(item => item.trim() !== '')
   } else {
@@ -227,6 +249,21 @@ mo.prototype.buildStyleScript = function (fileId, styleBuffer, inPath, prefix, r
   sAr.push('})();');
   return sAr.join('\n  ');
 }
+
+mo.prototype._strRule = function(rule) {
+  let des = rule.declarations;
+  let selector = rule.selectors;
+  let text = des.map(item => {
+    return `${item.property}: ${item.value};`
+  }).join('\n')
+  return selector.map(sel => {
+    return{
+      name: sel,
+      text: text
+    }
+  })
+}
+
 
 /**
  * 复制文件
