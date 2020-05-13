@@ -37,11 +37,11 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
     // 逐行读取
     rl.on('line', (line) => {
       //------------------------------template start---------------------------------//
-      if (line === '<template>') {
+      if (line.trim() === '<template>') {
         inTemplate = true;
         return;
       }
-      if (line === '</template>') {
+      if (line.trim() === '</template>') {
         inTemplate = false;
         return;
       }
