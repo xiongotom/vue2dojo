@@ -23,6 +23,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
   let inTemplate = false;
   let inScript = false;
   let inStyle = false;
+  let inTemplateCount = 0;
   let isScopeStyle = false;
   let templateBuffer = [];
   let scriptBuffer = [];
@@ -37,12 +38,20 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
     // 逐行读取
     rl.on('line', (line) => {
       //------------------------------template start---------------------------------//
-      if (line.trim() === '<template>') {
-        inTemplate = true;
+      // if (line.trim() === '<template>') {
+      if(/\<template/.test(line)) {
+        if(inTemplateCount === 0) {
+          inTemplate = true;
+        }
+        inTemplateCount += 1;
         return;
       }
-      if (line.trim() === '</template>') {
-        inTemplate = false;
+      // if (line.trim() === '</template>') {
+      if (/<\/template>/.test(line)) {
+        inTemplateCount -= 1;
+        if(inTemplateCount === 0) {
+          inTemplate = false;
+        }
         return;
       }
       if (inTemplate === true) {
