@@ -42,9 +42,11 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
       if(/\<template/.test(line)) {
         if(inTemplateCount === 0) {
           inTemplate = true;
+          inTemplateCount += 1;
           return
+        } else {
+          inTemplateCount += 1;
         }
-        inTemplateCount += 1;
       }
       // if (line.trim() === '</template>') {
       if (/<\/template>/.test(line)) {
