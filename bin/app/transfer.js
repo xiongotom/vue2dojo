@@ -23,6 +23,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
   let inTemplate = false;
   let inScript = false;
   let inStyle = false;
+  let inGlobalStyle = false;
   let inTemplateCount = 0;
   let isScopeStyle = false;
   let templateBuffer = [];
@@ -30,6 +31,7 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
   let scriptInpAr = [];
   let scriptInpNameAr = [];
   let styleBuffer = [];
+  let globalStyleBuffer = [];
 
   return new Promise((resolve, reject) => {
     let rl = readline.createInterface({
@@ -88,20 +90,27 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
       //------------------------------script over---------------------------------//
       //------------------------------css start---------------------------------//
       if (/\<style/.test(line)) {
-        inStyle = true;
-        isScopeStyle = /scoped/.test(line);
+        if(/scoped/.test(line)) {
+          inStyle = true;
+          isScopeStyle = true;
+        } else {
+          inGlobalStyle = true;
+        }
         return;
       }
 
       if (/<\/style>/.test(line)) {
         inStyle = false;
+        inGlobalStyle = false;
         return;
       }
 
-      if (inStyle) {
-        if (line.trim() != '') {
-          styleBuffer.push(line);
-        }
+      if (inStyle && line.trim() != '') {
+        styleBuffer.push(line);
+      }
+      // global css
+      if(inGlobalStyle && line.trim() != '') {
+        globalStyleBuffer.push(line);
       }
       //------------------------------css over---------------------------------//
     });
@@ -156,12 +165,16 @@ mo.prototype.doTransfer = function (inPath, outPath, fileId) {
         sAr.push(`  var templateStr = \`\n${templateBuffer.join('\n')}\n  \`;`);
         // 样式表
         if (styleBuffer.length > 0) {
-          sAr.push('  //----------------------------样式----------------------------//');
+          sAr.push('  //----------------------------本地样式----------------------------//');
           if (isScopeStyle) {
             sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath, randomClass, oldClass, transitionClass));
           } else {
             sAr.push('  '+this.buildStyleScript(fileId, styleBuffer, inPath));
           }
+        }
+        if (globalStyleBuffer.length > 0) {
+          sAr.push('  //----------------------------全局样式----------------------------//');
+          sAr.push('  '+this.buildStyleScript(fileId+'_global', globalStyleBuffer, inPath));
         }
         // script
         sAr.push('  //----------------------------代码主体----------------------------//');

@@ -1,6 +1,6 @@
 {
   "name": "vue2dojo",
-  "version": "1.0.1031",
+  "version": "1.0.1032",
   "description": "vue单文件组件转dojo风格（仅自己使用）",
   "main": "index.js",
   "bin": {
